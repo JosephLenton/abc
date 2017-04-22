@@ -15,26 +15,39 @@
 # i.e. Stuff we want to grep, want to edit, and so on.
 # 
 __ABC_PROGRAMMING_EXTENSIONS__="
+  sh
+  sql
+
+  rs
+
   h
   c cpp
+
   cs
   java jsp
   scala
+
   php
   pl perl py
+
   vbs vba vb
+
   js jsx
   ts tsx
   coffee
+
   json
   xml
   yml yaml
+  toml
+
   html  htm  hta
   xhtml xhtm
-  m
   css less styl sass
+
+  m
   txt md markdown
-  sql
+
   csv
   tf
 "
