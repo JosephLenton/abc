@@ -32,9 +32,13 @@ __ABC_PROGRAMMING_EXTENSIONS__="
 
   vbs vba vb
 
+  tcl
+
   js jsx
   ts tsx
   coffee
+
+  vim
 
   json
   xml
@@ -105,7 +109,7 @@ function e() {
   # So just edit it.
   # 
   if [ -f "$search" ]; then
-    gvim "$search"
+    g "$search"
     return 0
   fi
 
@@ -125,25 +129,44 @@ function e() {
     echo '    no file given'
     return 1
   fi
+  
+  name="iname"
+  hasUpperCase=`grep "[[:upper:]]" <<< "$search"`
+  if [[ $hasUpperCase ]]; then
+    name="name"
+  fi
 
   # Search for the file.
-  find "$dir" -name "*$search*" -type f | awk "$__ABC_PROGRAMMING_EXTENSIONS__EDIT_AWK__" > ~/.temp/e
+  find "$dir" -type f \( -path .git -o -path .github \) -prune -o -$name "*$search*" | awk "$__ABC_PROGRAMMING_EXTENSIONS__EDIT_AWK__" > ~/.temp/e
   numLines=`wc --line ~/.temp/e | sed -E 's/(^ *)|( .*$)//g'`
 
   # Fail, no files found.
   if [[ $numLines -eq '0' ]]; then
     echo '    no files found'
     return 1
+  fi
 
   # Success, one file found.
-  elif [[ $numLines -eq '1' ]]; then
-    gvim `cat ~/.temp/e`
+  if [[ $numLines -eq '1' ]]; then
+    g `cat ~/.temp/e`
+    return 0
+  fi
 
   # Fail, too many files found.
-  else
-    cat ~/.temp/e
+  # First lets check if the name given matches an exact file in the files found.
+  searchEscaped=$(sed 's/[^^]/[&]/g; s/\^/\\^/g' <<< "$search")
+  grep -E "(^|/)$searchEscaped$" ~/.temp/e > ~/.temp/e2
+  numLines=`wc --line ~/.temp/e2 | sed -E 's/(^ *)|( .*$)//g'`
 
+  # Success, one file found.
+  if [[ $numLines -eq '1' ]]; then
+    g `cat ~/.temp/e2`
+    return 0
   fi
+
+  # Fail, too many files found.
+  cat ~/.temp/e
+  return 1
 }
 
 # 
