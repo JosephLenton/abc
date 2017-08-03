@@ -58,9 +58,7 @@ __ABC_PROGRAMMING_EXTENSIONS__="
 
 # Remove excessive spaces and end of line.
 # All extensions seperated by a single space.
-__ABC_PROGRAMMING_EXTENSIONS__=$(
-    echo "$__ABC_PROGRAMMING_EXTENSIONS__" | sed -E ':a;N;$!ba;s/[ \n\r]+/ /g'
-)
+__ABC_PROGRAMMING_EXTENSIONS__=`sed -E -e ':a;N;$!ba;s/[ \n\r]+/ /g' -e 's/(^ )//' <<< $__ABC_PROGRAMMING_EXTENSIONS__`
 
 # 
 #   java -> /^.*\.java$/
@@ -68,9 +66,15 @@ __ABC_PROGRAMMING_EXTENSIONS__=$(
 __ABC_PROGRAMMING_EXTENSIONS__EDIT_AWK__="/^.*\\.${__ABC_PROGRAMMING_EXTENSIONS__// /$/\ || /^.*\\.}$/"
 
 # 
+#   java -> /^.*\.java$/
+# 
+__ABC_PROGRAMMING_EXTENSIONS__FIND__="-type f -name \"*.${__ABC_PROGRAMMING_EXTENSIONS__// /\" -o -type f -name \"*.}\""
+
+# 
 #   java -> **/*.java
 # 
 __ABC_PROGRAMMING_EXTENSIONS__GREP__="**/*.${__ABC_PROGRAMMING_EXTENSIONS__// / **/*.}"
+
 
 # 
 # c for cd, change the directory.
@@ -154,8 +158,8 @@ function e() {
 
   # Fail, too many files found.
   # First lets check if the name given matches an exact file in the files found.
-  searchEscaped=$(sed 's/[^^]/[&]/g; s/\^/\\^/g' <<< "$search")
-  grep -E "(^|/)$searchEscaped$" ~/.temp/e > ~/.temp/e2
+  searchEscaped=$(__abcs__regex_escape__ $search)
+  grep -E -- "(^|/)$searchEscaped$" ~/.temp/e > ~/.temp/e2
   numLines=`wc --line ~/.temp/e2 | sed -E 's/(^ *)|( .*$)//g'`
 
   # Success, one file found.
@@ -173,7 +177,7 @@ function e() {
 # f for find, find a file with some of the name given.
 # 
 function f() {
-  find . -name "*$**" -type f
+  find . -iname "*$@*" -type f
 }
 
 # 
@@ -225,17 +229,32 @@ function l() {
 }
 
 # 
-# s for search, search in files with grep using literal text.
+# r for replace in files.
 # 
-function s() {
-  __abcs__grep__ -F "$*"
+#     r search-term replacement
+# 
+# Warning! This works in place in files as standard.
+# 
+function r() {
+  search=`__abcs__regex_escape__ $1`
+  replace=`__abcs__slash_escape__ $2`
+  files=`__abcs__list_files_single_line__`
+
+  eval "sed -i 's/$search/$replace/g' $files"
 }
 
 # 
-# r for regex, search in files with grep using a regex.
+# s for search, search in files with grep using literal text.
 # 
-function r() {
-  __abcs__grep__ -E "$*"
+function s() {
+  __abcs__grep__ -F "$@"
+}
+
+# 
+# sr for search regex, search in files with grep using a regex.
+# 
+function sr() {
+  __abcs__grep__ -E "$@"
 }
 
 function __abcs__grep__() {
@@ -249,6 +268,33 @@ function __abcs__grep__() {
     grepArgs="-sni"
   fi
 
-  eval "grep $matchArg $grepArgs \"$searchString\" $__ABC_PROGRAMMING_EXTENSIONS__GREP__"
+  eval "grep $matchArg $grepArgs -- \"$searchString\" $__ABC_PROGRAMMING_EXTENSIONS__GREP__"
+}
+
+# 
+# This will list out all the found extension files we have.
+# 
+# This will print it out with all files on 1 line.
+# As filenames can contain a space, they will be escaped.
+# 
+function __abcs__list_files_single_line__() {
+  __abcs__list_files_multi_line__ $* | sed -e 's/ /\\ /' | tr '\n' ' '
+}
+
+# 
+# This will list out all the found extension files we have.
+# 
+# This will print it out with 1 file per line.
+# 
+function __abcs__list_files_multi_line__() {
+  eval "find . $__ABC_PROGRAMMING_EXTENSIONS__FIND__"
+}
+
+function __abcs__slash_escape__() {
+  echo "${@//\//\\/}"
+}
+
+function __abcs__regex_escape__() {
+  sed 's/[^^]/[&]/g; s/\^/\\^/g' <<< "$@"
 }
 
