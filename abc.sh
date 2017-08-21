@@ -14,7 +14,7 @@
 # Namely programming files and document formats.
 # i.e. Stuff we want to grep, want to edit, and so on.
 # 
-__ABC_PROGRAMMING_EXTENSIONS__="
+__ABCS__PROGRAMMING_EXTENSIONS__="
   sh
   sql
 
@@ -58,32 +58,40 @@ __ABC_PROGRAMMING_EXTENSIONS__="
 
 # Remove excessive spaces and end of line.
 # All extensions seperated by a single space.
-__ABC_PROGRAMMING_EXTENSIONS__=`sed -E -e ':a;N;$!ba;s/[ \n\r]+/ /g' -e 's/(^ )//' <<< $__ABC_PROGRAMMING_EXTENSIONS__`
+__ABCS__PROGRAMMING_EXTENSIONS__=`sed -E -e ':a;N;$!ba;s/[ \n\r]+/ /g' -e 's/(^ )//' <<< $__ABCS__PROGRAMMING_EXTENSIONS__`
 
 # 
 #   java -> /^.*\.java$/
 # 
-__ABC_PROGRAMMING_EXTENSIONS__EDIT_AWK__="/^.*\\.${__ABC_PROGRAMMING_EXTENSIONS__// /$/\ || /^.*\\.}$/"
+__ABCS__PROGRAMMING_EXTENSIONS__EDIT_AWK__="/^.*\\.${__ABCS__PROGRAMMING_EXTENSIONS__// /$/\ || /^.*\\.}$/"
 
 # 
 #   java -> /^.*\.java$/
 # 
-__ABC_PROGRAMMING_EXTENSIONS__FIND__="-type f -name \"*.${__ABC_PROGRAMMING_EXTENSIONS__// /\" -o -type f -name \"*.}\""
+__ABCS__PROGRAMMING_EXTENSIONS__FIND__="-type f -name \"*.${__ABCS__PROGRAMMING_EXTENSIONS__// /\" -o -type f -name \"*.}\""
 
 # 
 #   java -> **/*.java
 # 
-__ABC_PROGRAMMING_EXTENSIONS__GREP__="**/*.${__ABC_PROGRAMMING_EXTENSIONS__// / **/*.}"
+__ABCS__PROGRAMMING_EXTENSIONS__GREP__="**/*.${__ABCS__PROGRAMMING_EXTENSIONS__// / **/*.}"
+
+# 
+# Colours used for output.
+# 
+__ABCS__PROGRAMMING_EXTENSIONS__DIR_COL__="\x1b[38;2;230;115;10m"
+__ABCS__PROGRAMMING_EXTENSIONS__DIR_HIDDEN_COL__="\x1b[38;2;140;85;24m"
+__ABCS__PROGRAMMING_EXTENSIONS__FILE_COL__="\x1b[38;2;60;230;60m"
+__ABCS__PROGRAMMING_EXTENSIONS__FILE_HIDDEN_COL__="\x1b[38;2;30;150;30m"
+__ABCS__PROGRAMMING_EXTENSIONS__NO_COL__="\x1b[0m"
 
 
 # 
 # c for cd, change the directory.
 # 
 function c() {
-  path=$1
-  shift
+  local path=$1; shift
 
-  result=$?
+  local result=$?
   if [ $result -ne 0 ]; then
     pushd $path
     exit
@@ -105,15 +113,15 @@ function c() {
 #  - When just one file is found      -> edit it!
 # 
 function e() {
-  search=$1
-  dir=.
+  local search=$1
+  local dir=.
 
   # 
   # We're given an exact file name.
   # So just edit it.
   # 
   if [ -f "$search" ]; then
-    g "$search"
+    v "$search"
     return 0
   fi
 
@@ -124,8 +132,8 @@ function e() {
   # and grab out just the basename.
   # 
   if [[ "$search" == *\/* ]] || [[ "$search" == *\\* ]]; then
-    dir=$(dirname "$search")
     search=$(basename "$search")
+    dir=$(dirname "$search")
   fi
 
   # Fail, empty search given.
@@ -134,15 +142,15 @@ function e() {
     return 1
   fi
   
-  name="iname"
-  hasUpperCase=`grep "[[:upper:]]" <<< "$search"`
+  local name="iname"
+  local hasUpperCase=`grep "[[:upper:]]" <<< "$search"`
   if [[ $hasUpperCase ]]; then
     name="name"
   fi
 
   # Search for the file.
-  find "$dir" -type f \( -path .git -o -path .github \) -prune -o -$name "*$search*" | awk "$__ABC_PROGRAMMING_EXTENSIONS__EDIT_AWK__" > ~/.temp/e
-  numLines=`wc --line ~/.temp/e | sed -E 's/(^ *)|( .*$)//g'`
+  find "$dir" -type f \( -path .git -o -path .github \) -prune -o -$name "*$search*" | awk "$__ABCS__PROGRAMMING_EXTENSIONS__EDIT_AWK__" > ~/.temp/e
+  local numLines=`wc --line ~/.temp/e | sed -E 's/(^ *)|( .*$)//g'`
 
   # Fail, no files found.
   if [[ $numLines -eq '0' ]]; then
@@ -152,19 +160,30 @@ function e() {
 
   # Success, one file found.
   if [[ $numLines -eq '1' ]]; then
-    g `cat ~/.temp/e`
+    v `cat ~/.temp/e`
     return 0
   fi
 
   # Fail, too many files found.
-  # First lets check if the name given matches an exact file in the files found.
-  searchEscaped=$(__abcs__regex_escape__ $search)
+  # First, lets check if the name given matches an exact file in the files found.
+  local searchEscaped=$(__abcs__regex_escape__ $search)
   grep -E -- "(^|/)$searchEscaped$" ~/.temp/e > ~/.temp/e2
   numLines=`wc --line ~/.temp/e2 | sed -E 's/(^ *)|( .*$)//g'`
 
   # Success, one file found.
   if [[ $numLines -eq '1' ]]; then
-    g `cat ~/.temp/e2`
+    v `cat ~/.temp/e2`
+    return 0
+  fi
+
+  # Second, we look for a file that matches regardless of extension.
+  local searchEscaped="$searchEscaped.[^.]+"
+  grep -E -- "(^|/)$searchEscaped$" ~/.temp/e > ~/.temp/e2
+  numLines=`wc --line ~/.temp/e2 | sed -E 's/(^ *)|( .*$)//g'`
+
+  # Success, one file found.
+  if [[ $numLines -eq '1' ]]; then
+    v `cat ~/.temp/e2`
     return 0
   fi
 
@@ -191,41 +210,72 @@ function n() {
 # l for ls, but prettier.
 #
 function l() {
-  path=${1:-.}
+  __abcs__ls__ "" $@
+}
 
-  DIR_COL="\e[1;34m"
-  DIR_COL="\e[38;2;210;115;7m"
-  NO_COL="\e[0m"
+# 
+# la for ls -a (all files including hidden), but prettier.
+# 
+function la() {
+  __abcs__ls__ "true" $@
+}
 
-  fs=~/.temp/l
-  fs2=~/.temp/l2
+#
+# 
+# 
+function __abcs__ls__() {
+  local includeHidden=$1; shift
+  local path=${1:-.}
+
+  local lsArgs
+  local findArgs
+  if [[ $includeHidden ]]; then
+    lsArgs="-a"
+    findArgs=""
+  else
+    lsArgs=""
+    findArgs="-not -path '*/\.*'"
+  fi
+
+  local fs=~/.temp/l
+  local fs2=~/.temp/l2
 
   > $fs
   > $fs2
 
   #ls -1ad -- $path 2> /dev/null | sed 's/\///' > $fs
-  find "$path" -maxdepth 1 -type d -name "*" 2> /dev/null | \
-    sed \
+  eval "find \"$path\" -maxdepth 1 -type d $findArgs 2> /dev/null" | \
+    sed -E \
       -e 's/^.*\///' \
       -e '/^\.$/d'   \
       -e '/^[ \n\r\t]*$/d' \
       > $fs
 
+  # I tried using this instead of the block below as colouring using sed.
+  # Didn't work. Not sure why. Puts the tabbing out of position.
+  #-e "s ^\..*$ $__ABCS__PROGRAMMING_EXTENSIONS__DIR_HIDDEN_COL__&$__ABCS__PROGRAMMING_EXTENSIONS__NO_COL__ " -e "s ^[^.].*$ $__ABCS__PROGRAMMING_EXTENSIONS__DIR_COL__&$__ABCS__PROGRAMMING_EXTENSIONS__NO_COL__ " \
+
   while read -r line
   do
-    echo -e "$DIR_COL$line$NO_COL" >> $fs2
+    local dirColour=$__ABCS__PROGRAMMING_EXTENSIONS__DIR_COL__
+
+    if [[ $line == .* ]] ; then
+      dirColour=$__ABCS__PROGRAMMING_EXTENSIONS__DIR_HIDDEN_COL__
+    fi
+
+    echo -e "$dirColour$line$__ABCS__PROGRAMMING_EXTENSIONS__NO_COL__" >> $fs2
   done < $fs
 
-  fswidth=$(( $(wc -L <"$fs2") + 4 ))
+  local fswidth=$(( $(wc -L <"$fs2") + 4 ))
 
   echo ''
-  paste "$fs2" <(ls -pa | grep -v /)                                          \
+  paste "$fs2" <(\ls -p $lsArgs $path | grep -v / | sed -E -e "s ^\..*$ $__ABCS__PROGRAMMING_EXTENSIONS__FILE_HIDDEN_COL__&$__ABCS__PROGRAMMING_EXTENSIONS__NO_COL__ " -e "s ^[^.].*$ $__ABCS__PROGRAMMING_EXTENSIONS__FILE_COL__&$__ABCS__PROGRAMMING_EXTENSIONS__NO_COL__ ") \
     | expand -t $fswidth                                                      \
     | sed                                                                     \
-      -e 's/^/    /'                                                          \
-      -e 's/^            //'                                                  \
-      -e '1 s/^[^ ]/        &/'                                               \
-      -e 's/^        [^ ]/        &/'
+        -e 's/^/    /'                                                        \
+        -e 's/^            //'                                                \
+        -e '1 s/^[^ ]/        &/'                                             \
+        -e 's/^        [^ ]/        &/'
 }
 
 # 
@@ -236,9 +286,9 @@ function l() {
 # Warning! This works in place in files as standard.
 # 
 function r() {
-  search=`__abcs__regex_escape__ $1`
-  replace=`__abcs__slash_escape__ $2`
-  files=`__abcs__list_files_single_line__`
+  local search=`__abcs__regex_escape__ $1`
+  local replace=`__abcs__slash_escape__ $2`
+  local files=`__abcs__list_files_single_line__`
 
   eval "sed -i 's/$search/$replace/g' $files"
 }
@@ -247,28 +297,29 @@ function r() {
 # s for search, search in files with grep using literal text.
 # 
 function s() {
-  __abcs__grep__ -F "$@"
+  __abcs__grep__ -F "$*"
 }
 
 # 
 # sr for search regex, search in files with grep using a regex.
 # 
 function sr() {
-  __abcs__grep__ -E "$@"
+  __abcs__grep__ -E "$*"
 }
 
 function __abcs__grep__() {
-  matchArg=$1
-  searchString=$2
-
-  hasUpperCase=`grep "[[:upper:]]" <<< "$searchString"`
+  local matchArg=$1
+  local searchString=$2
+  local grepArgs=""
+  local hasUpperCase=`grep "[[:upper:]]" <<< "$searchString"`
+  
   if [[ $hasUpperCase ]]; then
     grepArgs="-sn"
   else
     grepArgs="-sni"
   fi
 
-  eval "grep $matchArg $grepArgs -- \"$searchString\" $__ABC_PROGRAMMING_EXTENSIONS__GREP__"
+  eval "grep $matchArg $grepArgs -- \"$searchString\" $__ABCS__PROGRAMMING_EXTENSIONS__GREP__"
 }
 
 # 
@@ -287,7 +338,7 @@ function __abcs__list_files_single_line__() {
 # This will print it out with 1 file per line.
 # 
 function __abcs__list_files_multi_line__() {
-  eval "find . $__ABC_PROGRAMMING_EXTENSIONS__FIND__"
+  eval "find . $__ABCS__PROGRAMMING_EXTENSIONS__FIND__"
 }
 
 function __abcs__slash_escape__() {
