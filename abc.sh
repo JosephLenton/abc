@@ -141,7 +141,7 @@ function e() {
     echo '    no file given'
     return 1
   fi
-  
+
   local name="iname"
   local hasUpperCase=`grep "[[:upper:]]" <<< "$search"`
   if [[ $hasUpperCase ]]; then
@@ -312,7 +312,7 @@ function __abcs__grep__() {
   local searchString=$2
   local grepArgs=""
   local hasUpperCase=`grep "[[:upper:]]" <<< "$searchString"`
-  
+
   if [[ $hasUpperCase ]]; then
     grepArgs="-sn"
   else
