@@ -38,6 +38,8 @@ __ABCS__PROGRAMMING_EXTENSIONS__="
   ts tsx
   coffee
 
+  vue
+
   vim
 
   json
