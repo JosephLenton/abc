@@ -198,6 +198,12 @@ function e() {
 # f for find, find a file with some of the name given.
 # 
 function f() {
+  if [ $# -eq 0 ]
+    then
+      echo "No arguments supplied"
+      return 1
+  fi
+
   find . -iname "*$@*" -type f
 }
 
