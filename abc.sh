@@ -256,6 +256,12 @@ function sr() {
 }
 
 function __abcs__grep__() {
+  if [ $# -eq 1 ]
+    then
+      echo "No search string provided"
+      return 1
+  fi
+
   local matchArg=$1
   local searchString=$2
   local grepArgs=""
