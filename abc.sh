@@ -222,6 +222,18 @@ function n() {
 # Warning! This works in place in files as standard.
 # 
 function r() {
+  if [ $# -eq 0 ]
+    then
+      echo "No arguments supplied"
+      return 1
+  fi
+
+  if [ $# -eq 1 ]
+    then
+      echo "No replacement provided"
+      return 2
+  fi
+
   local search=`__abcs__regex_escape__ $1`
   local replace=`__abcs__slash_escape__ $2`
   local files=`__abcs__list_files_single_line__`
