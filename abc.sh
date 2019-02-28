@@ -18,6 +18,8 @@ __ABCS__PROGRAMMING_EXTENSIONS__="
   sh
   sql
 
+  groovy
+
   rs
 
   h
@@ -56,6 +58,8 @@ __ABCS__PROGRAMMING_EXTENSIONS__="
 
   csv
   tf
+
+  gql
 "
 
 # Remove excessive spaces and end of line.
@@ -151,7 +155,7 @@ function e() {
   fi
 
   # Search for the file.
-  find "$dir" -type f \( -path .git -o -path .github \) -prune -o -$name "*$search*" | awk "$__ABCS__PROGRAMMING_EXTENSIONS__EDIT_AWK__" > ~/.temp/e
+  find "$dir" -type f \( -path .git -o -path .github -o -path node_modules -o -path __tests__ -o -path .gradle -o -path .vscode -o -path target \) -prune -o -$name "*$search*" | awk "$__ABCS__PROGRAMMING_EXTENSIONS__EDIT_AWK__" > ~/.temp/e
   local numLines=`wc --line ~/.temp/e | sed -E 's/(^ *)|( .*$)//g'`
 
   # Fail, no files found.
@@ -167,23 +171,24 @@ function e() {
   fi
 
   # Fail, too many files found.
-  # First, lets check if the name given matches an exact file in the files found.
   local searchEscaped=$(__abcs__regex_escape__ $search)
-  grep -E -- "(^|/)$searchEscaped$" ~/.temp/e > ~/.temp/e2
+
+  # 1) Check if there is only one file that starts with the name given.
+  grep -iE -- "(^|/)$searchEscaped" ~/.temp/e > ~/.temp/e2
   numLines=`wc --line ~/.temp/e2 | sed -E 's/(^ *)|( .*$)//g'`
 
-  # Success, one file found.
+  # 1) Success, one file found, open it!
   if [[ $numLines -eq '1' ]]; then
     v `cat ~/.temp/e2`
     return 0
   fi
 
-  # Second, we look for a file that matches regardless of extension.
+  # 2) Look for a file that matches regardless of extension.
   local searchEscaped="$searchEscaped.[^.]+"
-  grep -E -- "(^|/)$searchEscaped$" ~/.temp/e > ~/.temp/e2
+  grep -iE -- "(^|/)$searchEscaped$" ~/.temp/e > ~/.temp/e2
   numLines=`wc --line ~/.temp/e2 | sed -E 's/(^ *)|( .*$)//g'`
 
-  # Success, one file found.
+  # 2) Success, one file found, open it!
   if [[ $numLines -eq '1' ]]; then
     v `cat ~/.temp/e2`
     return 0
@@ -238,7 +243,7 @@ function r() {
   local replace=`__abcs__slash_escape__ $2`
   local files=`__abcs__list_files_single_line__`
 
-  eval "sed -i 's/$search/$replace/g' $files"
+  sed -i "s/${search}/${replace}/g" ${files}
 }
 
 # 
